@@ -139,3 +139,7 @@ for deb in "${debs[@]}"; do
   echo "    Depends: $(dpkg-deb -f "$deb" Depends)"
   echo "    files:   $(dpkg-deb -c "$deb" | grep -c '^-')"
 done
+
+echo ""
+echo "== release manifest =="
+python3 "$REPO_SOURCE/scripts/write-manifest.py" "$OUT"

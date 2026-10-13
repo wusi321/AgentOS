@@ -9,7 +9,7 @@
 # Usage: AGENTOS_SUDO_PASSWORD=... verify-installed.sh [artifact-directory]
 set -uo pipefail
 
-ARTIFACTS="${1:-/mnt/d/桌面/AgentOS/build/debs}"
+ARTIFACTS="${1:-/mnt/d/妗岄潰/AgentOS/build/debs}"
 SUDO_PASSWORD="${AGENTOS_SUDO_PASSWORD:-}"
 
 FAILURES=0
@@ -23,6 +23,9 @@ check() {
   fi
 }
 
+# The state directory is mode 0700 and owned by the service account, so a plain
+# `test -f` run as the invoking user cannot traverse it and always reports failure.
+# Every existence check therefore goes through sudo, where the answer is real.
 sudo_do() {
   if [ -n "$SUDO_PASSWORD" ]; then
     printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
@@ -31,7 +34,12 @@ sudo_do() {
   fi
 }
 
+state_db_present() { sudo_do test -f /var/lib/agentos/agentos.sqlite3; }
+
 echo "=== cleaning any previous installation ==="
+# The service is stopped before its state is removed: systemd recreates a running
+# unit's StateDirectory, so deleting underneath a live service is racy.
+sudo_do systemctl stop agentos-core >/dev/null 2>&1 || true
 sudo_do dpkg --purge --force-depends agentos-meta agentos-gnome-extension agentos-desktop agentos-runtime-dsh agentos-core >/dev/null 2>&1 || true
 sudo_do rm -rf /var/lib/agentos /var/cache/agentos /var/log/agentos /etc/agentos /run/agentos >/dev/null 2>&1 || true
 check "no agentos package remains installed" bash -c "! dpkg-query -W agentos-core 2>/dev/null | grep -q ."
@@ -155,26 +163,38 @@ check "the configuration survived the upgrade" test -f /etc/agentos/agentos.toml
 
 echo ""
 echo "=== removal keeps user data ==="
+# The precondition is asserted, not assumed: if the database were already absent,
+# the check below would pass for the wrong reason and hide a real defect.
+echo "  --- state before removal ---"
+sudo_do ls -la /var/lib/agentos 2>&1 | sed 's/^/    /'
+check "the database exists before removal (precondition)" state_db_present
 sudo_do systemctl stop agentos-core >/dev/null 2>&1 || true
+sudo_do systemctl disable agentos-core >/dev/null 2>&1 || true
+check "the database exists after the service stopped (precondition)" state_db_present
 if sudo_do dpkg -r agentos-meta agentos-gnome-extension agentos-desktop agentos-runtime-dsh agentos-core >/tmp/dpkg-remove.log 2>&1; then
   check "removal succeeds" true
 else
   echo "  [FAIL] removal reported problems:"; tail -12 /tmp/dpkg-remove.log | sed 's/^/         /'
   FAILURES=$((FAILURES + 1))
 fi
-check "the task and audit database survived removal" test -f /var/lib/agentos/agentos.sqlite3
+echo "  --- state after removal ---"
+sudo_do ls -la /var/lib/agentos 2>&1 | sed 's/^/    /'
+check "the task and audit database survived removal" state_db_present
 check "the removal reported that data remains" grep -q 'remain in /var/lib/agentos' /tmp/dpkg-remove.log
 check "the service is no longer enabled" bash -c "! systemctl is-enabled --quiet agentos-core"
 
 echo ""
 echo "=== purge ==="
+check "the database exists before purge (precondition)" state_db_present
 if sudo_do dpkg --purge agentos-core >/tmp/dpkg-purge.log 2>&1; then
   check "purge succeeds" true
 else
   echo "  [FAIL] purge reported problems:"; tail -12 /tmp/dpkg-purge.log | sed 's/^/         /'
   FAILURES=$((FAILURES + 1))
 fi
-check "purge still keeps the audit trail" test -f /var/lib/agentos/agentos.sqlite3
+echo "  --- state after purge ---"
+sudo_do ls -la /var/lib/agentos 2>&1 | sed 's/^/    /'
+check "purge still keeps the audit trail" state_db_present
 check "purge reported that data remains" grep -q 'still contains' /tmp/dpkg-purge.log
 check "purge removed the service account" bash -c "! getent passwd agentos"
 

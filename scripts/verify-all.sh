@@ -34,6 +34,7 @@ stage() {
 }
 
 stage "python syntax" python3 -m compileall -q -f src/agentos
+stage "python 3.10 compatibility" python3 scripts/check-python-compat.py --target 3.10 "$ROOT"
 stage "source and unit tests" python3 -m pytest -q tests
 stage "packaging metadata" python3 scripts/check-packaging.py
 stage "maintainer script arguments" python3 scripts/check-maintainer-arguments.py "$ROOT"
@@ -43,6 +44,7 @@ stage "end-to-end smoke test" python3 scripts/smoke-core.py
 
 if [ "$WITH_SUDO" = "--with-sudo" ]; then
   stage "installed system" bash scripts/verify-installed.sh "$ROOT/build/debs"
+  stage "data retention across removal" bash scripts/verify-data-retention.sh "$ROOT/build/debs"
   AGENTOS_SUDO_PASSWORD="${AGENTOS_SUDO_PASSWORD:-}" \
     stage "live system" bash scripts/verify-live.sh "$ROOT/build/debs"
 fi

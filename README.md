@@ -119,6 +119,7 @@ upstream protocol document.
 | [docs/gnome-integration.md](docs/gnome-integration.md) | the extension, the session broker, and the D-Bus surface |
 | [docs/runtime-api.md](docs/runtime-api.md) | the `AgentRuntime` protocol and the event vocabulary |
 | [docs/packaging.md](docs/packaging.md) | packages, paths, upgrade and removal behaviour |
+| [docs/vm-verification.md](docs/vm-verification.md) | the acceptance test to run on a real Ubuntu 22.04 Desktop VM, including the GNOME Shell and Python 3.10 checks that a headless host cannot perform |
 | [docs/adr/](docs/adr/) | the architecture decision records |
 
 ## Verify an installed system
@@ -129,6 +130,28 @@ agentosctl doctor        # no credential and no network needed
 sudo systemctl start agentos-core
 agentosctl demo          # task -> runtime -> policy -> approval -> audit
 ```
+
+## Verification status
+
+Every stage below is executed by `scripts/verify-all.sh` and was run against the
+packages in `build/debs/`:
+
+| Stage | Result |
+|---|---|
+| Python 3.10 grammar and standard-library compatibility | pass — 45 modules |
+| unit, contract, and security tests | pass — 249 tests |
+| packaging metadata, including module coverage | pass |
+| maintainer script arguments and the packaged copies | pass |
+| built-package layout, imports, schemas, units, extension security | pass |
+| end-to-end core smoke test over the real IPC socket | pass — 30 checks |
+| install, upgrade, remove, purge on a real system | pass |
+| removal and purge keep the task and audit database | pass |
+| live system through the real CLI, including the approval path | pass |
+
+Two items are **not** covered automatically, and `docs/vm-verification.md` is how to
+cover them: the GNOME Shell 42 extension on a real desktop session, and the shipped
+package under a Python 3.10 interpreter (the automated host runs 3.12, so 3.10 is
+covered by a grammar and standard-library check rather than by execution).
 
 ## License
 
