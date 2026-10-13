@@ -1,0 +1,2 @@
+# agentos-meta: documentation only. The metapackage exists for its dependency set.
+packaging/meta/README.md                         usr/share/doc/agentos-meta/

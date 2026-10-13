@@ -1,0 +1,9 @@
+{
+  "uuid": "agentos@agentos.dev",
+  "name": "AgentOS",
+  "description": "Top-bar status indicator for the AgentOS agent-native desktop environment. Shows core/runtime availability, active tasks, pending approvals and recent activity, and can open the AgentOS desktop application. It never runs commands, never touches files and never approves anything itself.",
+  "shell-version": ["42", "43", "44"],
+  "settings-schema": "org.gnome.shell.extensions.agentos",
+  "gettext-domain": "gnome-shell-extensions",
+  "url": "https://agentos.dev"
+}

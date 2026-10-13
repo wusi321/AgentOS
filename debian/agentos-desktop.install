@@ -1,0 +1,12 @@
+# agentos-desktop: the GTK4 application, the session broker, and their assets.
+# Sub-packages are listed as globs rather than directories: dh_install copies a
+# directory source into <destination>/<basename>/.
+bin/agentos-desktop                             usr/bin/
+bin/agentos-session                             usr/bin/
+src/agentos/desktop/*.py                        usr/lib/python3/dist-packages/agentos/desktop/
+src/agentos/session/*.py                        usr/lib/python3/dist-packages/agentos/session/
+packaging/desktop/org.agentos.Desktop.desktop   usr/share/applications/
+packaging/desktop/org.agentos.Desktop.svg       usr/share/icons/hicolor/scalable/apps/
+packaging/dbus/org.agentos.Session1.service     usr/share/dbus-1/services/
+packaging/gsettings/org.agentos.Desktop.gschema.xml  usr/share/glib-2.0/schemas/
+packaging/systemd/agentos-session.service       lib/systemd/user/

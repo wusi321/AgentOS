@@ -1,0 +1,14 @@
+#!/usr/bin/python3
+"""``agentos-session``: the per-login session broker.
+
+Started by the ``agentos-session.service`` systemd *user* unit inside the user's
+session. It owns ``org.agentos.Session1`` on the session bus so that the GNOME
+Shell extension never has to speak the system service's protocol.
+"""
+
+import sys
+
+from agentos.session import main
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

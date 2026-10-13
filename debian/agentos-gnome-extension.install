@@ -1,0 +1,16 @@
+# agentos-gnome-extension: the Shell extension and its settings schema.
+#
+# The extension must live in a directory named exactly after its UUID, so the
+# destination carries the UUID rather than the source directory name.
+#
+# The schema is installed both inside the extension, which is where GNOME Shell
+# 42 loads it from, and in the system schema directory so that `gsettings` and
+# `dconf` can see the same keys. dh_installgsettings compiles the system copy.
+gnome-extension/extension.js                     usr/share/gnome-shell/extensions/agentos@agentos.dev/
+gnome-extension/utils.js                         usr/share/gnome-shell/extensions/agentos@agentos.dev/
+gnome-extension/prefs.js                         usr/share/gnome-shell/extensions/agentos@agentos.dev/
+gnome-extension/stylesheet.css                   usr/share/gnome-shell/extensions/agentos@agentos.dev/
+gnome-extension/metadata.json                    usr/share/gnome-shell/extensions/agentos@agentos.dev/
+gnome-extension/schemas/*.xml                    usr/share/gnome-shell/extensions/agentos@agentos.dev/schemas/
+gnome-extension/schemas/org.gnome.shell.extensions.agentos.gschema.xml  usr/share/glib-2.0/schemas/
+gnome-extension/README.md                        usr/share/doc/agentos-gnome-extension/

@@ -1,0 +1,14 @@
+#!/usr/bin/python3
+"""``agentos-core`` service entry point installed by the agentos-core package.
+
+Started by the ``agentos-core.service`` systemd unit. It runs in the foreground
+and logs one JSON object per line to standard error, which systemd forwards to
+the journal.
+"""
+
+import sys
+
+from agentos.core import main
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

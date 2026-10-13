@@ -1,0 +1,29 @@
+#!/bin/sh
+# agentos-desktop post-removal script.
+set -e
+
+case "$1" in
+  remove)
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl --global disable agentos-session.service >/dev/null 2>&1 || true
+    fi
+    ;;
+
+  purge)
+    if command -v systemctl >/dev/null 2>&1; then
+      systemctl --global disable agentos-session.service >/dev/null 2>&1 || true
+    fi
+    ;;
+
+  upgrade|disappear|failed-upgrade|abort-install|abort-upgrade)
+    ;;
+
+  *)
+    echo "agentos-desktop postrm called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

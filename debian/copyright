@@ -1,0 +1,33 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: AgentOS
+Upstream-Contact: AgentOS Maintainers <maintainers@agentos.invalid>
+Source: https://github.com/agentos-project/agentos
+
+Files: *
+Copyright: 2026 AgentOS Maintainers
+License: Apache-2.0
+
+Files: gnome-extension/*
+Copyright: 2026 AgentOS Maintainers
+License: Apache-2.0
+
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+ this file except in compliance with the License.
+ .
+ On Debian and Ubuntu systems the complete license text is available at
+ /usr/share/common-licenses/Apache-2.0, and it ships with the source tree as
+ LICENSE.
+ .
+ Unless required by applicable law or agreed to in writing, software distributed
+ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations under the License.
+ .
+ The GNOME Shell extension is original work distributed under the same terms as
+ the rest of AgentOS.
+
+# DeepSeek Harness is not distributed by these packages. The agentos-runtime-dsh
+# package contains an adapter that launches a harness installation the deployment
+# provides, so no upstream harness code or licence text is redistributed here.
+# third_party/notices/ records the licence of the locked revision for operators.

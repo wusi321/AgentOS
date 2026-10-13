@@ -1,0 +1,39 @@
+# Site-local AgentOS configuration overrides.
+#
+# This file is NOT installed by the package: copy it into place when you need to
+# change a setting, so that a package upgrade cannot overwrite your decisions.
+#
+#   sudo install -m 0644 /usr/share/doc/agentos-core/examples/agentos.local.toml.example \
+#                        /etc/agentos/agentos.local.toml
+#   sudoedit /etc/agentos/agentos.local.toml
+#   sudo systemctl reload agentos-core
+#
+# Only the settings you actually want to change need to appear here: the package
+# default in /etc/agentos/agentos.toml supplies everything else, and this file is
+# layered on top of it. A reload that fails validation keeps the previous
+# configuration, and the reason is written to the journal.
+
+[core]
+# Uncomment to raise concurrency. Each concurrent task is one runtime process.
+# max_concurrent_tasks = 4
+
+# Uncomment to keep the audit trail longer, or to bound its size more tightly.
+# audit_retain_days = 90
+# audit_max_records = 500000
+
+[runtime]
+# Switch to the DeepSeek Harness runtime. This needs the agentos-runtime-dsh
+# package, a compatible Node.js, a model credential, and a pinned harness
+# installation.
+# runtime_id = "dsh"
+# provider = "deepseek-official"
+# model = "deepseek-flash"
+# reasoning_effort = ""
+# max_tokens = 8192
+# turn_timeout_seconds = 900.0
+
+[desktop]
+# Uncomment to keep the session broker from being started for every login.
+# enabled = false
+# notification_throttle_seconds = 60
+# poll_interval_seconds = 5

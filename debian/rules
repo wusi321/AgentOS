@@ -1,0 +1,53 @@
+#!/usr/bin/make -f
+# AgentOS Debian packaging rules.
+#
+# The project uses native packaging: the source tree is the Debian source tree,
+# so no upstream tarball is produced or fetched. Every binary package is
+# architecture "all" because the shipped code is Python and GJS; the Node.js
+# runtime a real DSH deployment needs comes from the nodejs package or from the
+# deployment's own pinned runtime.
+#
+# pybuild is deliberately not used: the project has several top-level source
+# trees (Python modules, CLI scripts, the GNOME extension, packaging assets) and
+# installing them from explicit per-package .install files is clearer and more
+# auditable than teaching a single-tree build system about all of them.
+#
+# Nothing here contacts the network, and nothing here needs root.
+
+%:
+	dh $@ --with python3
+
+override_dh_auto_configure:
+	# No configuration step: the source tree is ready to install as-is.
+
+override_dh_auto_build:
+	# No compilation step. Byte-compilation of the installed modules is left to
+	# dh_python3 so that the target interpreter owns the generated files.
+
+override_dh_auto_test:
+	# The build does not run the test suite, so that an urgent rebuild cannot be
+	# blocked by a slow or environment-dependent suite. Run it deliberately with
+	# `debian/rules test` or scripts/run-tests.sh.
+
+override_dh_auto_install:
+	# Every shipped file is declared in a per-package .install file.
+
+override_dh_installdocs:
+	dh_installdocs README.md docs
+
+# dh_installchangelogs is left at its default. Passing debian/changelog as the
+# explicit source makes debhelper install the same text twice, once as
+# changelog.Debian.gz and once as changelog.gz, which lintian flags.
+
+# dh_python3 populates ${python3:Depends} in debian/control and byte-compiles the
+# installed modules for the target interpreter.
+override_dh_python3:
+	dh_python3 --shebang=/usr/bin/python3
+
+.PHONY: test
+test:
+	python3 -m pytest -q tests
+
+.PHONY: check-policy
+check-policy:
+	python3 -c "from agentos.policy import PolicyEngine; e = PolicyEngine.from_configuration(directory='configs/policies'); print([p.name for p in e.policies])"

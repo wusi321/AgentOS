@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "adapter": "agentos-runtime-dsh",
+  "note": "The locked DeepSeek Harness revision this adapter was verified against. The adapter refuses to run against a different revision until it is re-verified; see docs/dsh-integration.md and scripts/probe-dsh-sdk.sh.",
+  "locked": {
+    "package": "@deepseek-ai/dsh",
+    "version": "0.2.1-alpha.2",
+    "tag": "dsh-v0.2.1-alpha.2",
+    "commit": "d743267388641bc76f17c45ce8b4c231aed1d32c",
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "license": "MIT",
+    "node_engines": "^22.19.0 || >=24.0.0"
+  },
+  "sdk_profile": "sdk",
+  "sdk_server_name": "deepseek-harness-sdk-runtime",
+  "default_route": {
+    "provider": "deepseek-official",
+    "model": "deepseek-flash"
+  },
+  "verified_behaviour": {
+    "jsonrpc_stdio": true,
+    "streaming_events": true,
+    "tool_call_events": true,
+    "session_persistence": true,
+    "session_reopen_by_id": true,
+    "cancel": false,
+    "runtime_side_approvals": false,
+    "observed_unknown_method_rpc_code": -32603
+  },
+  "install_hint": "This package does not redistribute or download the harness. Install the locked revision into a directory the runtime account can read, and point runtime.cli_entry at its lib/bin.js, for example: npm install --prefix /usr/lib/agentos/dsh @deepseek-ai/dsh@0.2.1-alpha.2"
+}

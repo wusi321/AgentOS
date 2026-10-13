@@ -1,0 +1,68 @@
+/*
+ * AgentOS GNOME Shell extension stylesheet.
+ *
+ * Theme-awareness rules followed here:
+ *   - No colour literals, no background colours and no colour properties at all.
+ *     The Shell already tints popup menu text correctly in light and dark
+ *     themes, so the extension only adds emphasis and never risks unreadable
+ *     text on a theme that does not define a guessed colour name.
+ *   - Emphasis is expressed with `font-weight` and `font-size` only.
+ *   - The `-st-success-color`/`-st-warning-color`/`-st-error-color` names are
+ *     intentionally NOT used: they are not defined by all Shell themes, and an
+ *     undefined name silently drops the declaration.
+ *   - The state class names are still applied by extension.js, so a theme (or a
+ *     user stylesheet) can style AgentOS status, approval and event rows.
+ */
+
+/* Top-bar indicator box holding the icon and the count label. */
+.agentos-panel-box {
+    /* Kept for themers; the live spacing is set on the Clutter.BoxLayout. */
+    spacing: 0.5em;
+}
+
+/* Top-bar indicator label ("AgentOS 2"). */
+.agentos-panel-label {
+    font-size: 0.9em;
+    padding-left: 0.25em;
+}
+
+/* Status line shown in the menu header when the service is healthy. */
+.agentos-status-ok {
+    font-weight: bold;
+}
+
+/* Status line shown when the core, the runtime or the broker is unavailable. */
+.agentos-status-bad {
+    /* Header text only: bold plus the word "unavailable" carries the meaning. */
+    font-weight: bold;
+}
+
+/* Rows in the "Waiting for approval" submenu. */
+.agentos-approval-item {
+    /*
+     * Emphasis only, no colour: the Shell already tints menu text for the
+     * active theme, and guessing a named colour here would risk either an
+     * ignored declaration or unreadable text on an exotic theme.
+     */
+    font-weight: bold;
+}
+
+/* Ordinary recent-activity rows. */
+.agentos-event {
+    font-size: 0.95em;
+}
+
+/* Reminder rows and warnings in the "Recent activity" submenu. */
+.agentos-event-warning {
+    font-weight: bold;
+}
+
+/* Failures and errors in the "Recent activity" submenu. */
+.agentos-event-error {
+    font-weight: bold;
+}
+
+/* Dimmed helper text inside menu sections (the event timestamp). */
+.agentos-subtext {
+    font-size: 0.9em;
+}

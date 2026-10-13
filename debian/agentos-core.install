@@ -1,0 +1,42 @@
+# agentos-core: the core service, its CLI, its configuration, and its units.
+#
+# Format: <source glob>  <destination directory>.
+#
+# Sub-packages are listed as explicit globs ("src/agentos/policy/*.py") rather
+# than as directories, because dh_install copies a directory source into
+# <destination>/<basename>/ and that would produce .../agentos/policy/policy/.
+# Listing the files keeps the shipped layout exactly the layout in this file.
+
+bin/agentosctl                                   usr/bin/
+bin/agentos-core                                 usr/libexec/agentos/
+src/agentos/__init__.py                          usr/lib/python3/dist-packages/agentos/
+src/agentos/__main__.py                          usr/lib/python3/dist-packages/agentos/
+src/agentos/constants.py                         usr/lib/python3/dist-packages/agentos/
+src/agentos/errors.py                            usr/lib/python3/dist-packages/agentos/
+src/agentos/events.py                            usr/lib/python3/dist-packages/agentos/
+src/agentos/jsonutil.py                          usr/lib/python3/dist-packages/agentos/
+src/agentos/schema.py                            usr/lib/python3/dist-packages/agentos/
+src/agentos/toml.py                              usr/lib/python3/dist-packages/agentos/
+src/agentos/yaml_subset.py                       usr/lib/python3/dist-packages/agentos/
+src/agentos/cli.py                               usr/lib/python3/dist-packages/agentos/
+src/agentos/audit/*.py                           usr/lib/python3/dist-packages/agentos/audit/
+src/agentos/core/*.py                            usr/lib/python3/dist-packages/agentos/core/
+src/agentos/policy/*.py                          usr/lib/python3/dist-packages/agentos/policy/
+src/agentos/system_bridge/*.py                   usr/lib/python3/dist-packages/agentos/system_bridge/
+src/agentos/tasks/*.py                           usr/lib/python3/dist-packages/agentos/tasks/
+# The runtime package is split: the protocol, the factory, and the mock runtime
+# belong to the core service, while the DSH adapter ships in
+# agentos-runtime-dsh so that a deployment can install the service without the
+# harness adapter's Node.js dependency.
+src/agentos/runtime/__init__.py                  usr/lib/python3/dist-packages/agentos/runtime/
+src/agentos/runtime/api.py                       usr/lib/python3/dist-packages/agentos/runtime/
+src/agentos/runtime/factory.py                   usr/lib/python3/dist-packages/agentos/runtime/
+src/agentos/runtime/mock.py                      usr/lib/python3/dist-packages/agentos/runtime/
+etc/agentos.toml                                 etc/agentos/
+configs/policies/default-policy.yaml             etc/agentos/policies/
+configs/policies/50-site-policy.yaml.example     etc/agentos/policies/
+etc/credentials.env.example                      etc/agentos/
+packaging/systemd/agentos-core.service           lib/systemd/system/
+packaging/dbus/org.agentos.Core1.conf            usr/share/dbus-1/system.d/
+packaging/man/agentosctl.1                       usr/share/man/man1/
+etc/agentos.local.toml.example                   usr/share/doc/agentos-core/examples/

@@ -1,0 +1,32 @@
+#!/bin/sh
+# agentos-gnome-extension post-installation script.
+#
+# A system postinst cannot enable a GNOME Shell extension: extensions are enabled
+# per user, in that user's session, through dconf. This script therefore compiles
+# the schema and prints the exact command the user must run, instead of attempting
+# a session action it cannot perform reliably.
+set -e
+
+case "$1" in
+  configure)
+    if [ -z "$2" ]; then
+      echo "agentos-gnome-extension: the extension is installed but NOT enabled." >&2
+      echo "agentos-gnome-extension: as your own user, run:" >&2
+      echo "agentos-gnome-extension:   gnome-extensions enable agentos@agentos.dev" >&2
+      echo "agentos-gnome-extension: then log out and back in for the panel entry to appear." >&2
+      echo "agentos-gnome-extension: on Xorg you may instead press Alt+F2 and run 'r'." >&2
+    fi
+    ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+  *)
+    echo "agentos-gnome-extension postinst called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

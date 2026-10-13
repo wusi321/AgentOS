@@ -1,0 +1,195 @@
+.TH AGENTOSCTL 1 "October 2026" "AgentOS 0.1.0" "AgentOS manual"
+.SH NAME
+agentosctl \- control the AgentOS agent-native operating environment
+.SH SYNOPSIS
+.B agentosctl
+.RI [ options ]
+.I command
+.RI [ arguments ]
+.SH DESCRIPTION
+.B agentosctl
+is the operator and user interface to AgentOS. It is a thin client: every
+state-changing command is sent to the AgentOS core service over a Unix domain
+socket, and the service is what enforces policy and writes the audit trail.
+.PP
+The commands that work without the service \(em
+.BR doctor ,
+.BR config ,
+and
+.BR runtime
+\(em exist so that an installation whose service will not start can still be
+diagnosed.
+.SH GLOBAL OPTIONS
+.TP
+.B \-\-socket \fIPATH\fR
+Core IPC socket. Default: \fI/run/agentos/core.sock\fR, or \fB$AGENTOS_SOCKET\fR.
+.TP
+.B \-\-json
+Emit machine-readable JSON instead of human-readable text.
+.TP
+.B \-\-timeout \fISECONDS\fR
+Per-request deadline. Default: 30.
+.TP
+.B \-\-version
+Print the version and exit.
+.SH COMMANDS
+.SS doctor
+Diagnose the installation from local facts only: configuration validity, service
+reachability, runtime availability, the Node.js requirement for the DSH runtime,
+the credential file's permissions, and the loaded policy. Exits non-zero when a
+finding of severity \fIerror\fR is present.
+.SS health
+Report service, database, runtime, task, and approval health.
+.SS task
+.TP
+.B task run \fIPROMPT\fR [\-\-runtime \fIID\fR] [\-\-level-cap \fIP0..P3\fR] [\-\-priority \fIN\fR] [\-\-watch]
+Submit a prompt as a task. The privilege cap defaults to \fBP0\fR and bounds the
+authority the task may ever reach, independently of policy.
+.TP
+.B task list [\-\-state \fISTATE\fR] [\-\-limit \fIN\fR] [\-\-all-owners]
+List tasks. Only the superuser may list another owner's tasks.
+.TP
+.B task show \fITASK_ID\fR
+Show one task.
+.TP
+.B task history \fITASK_ID\fR
+Show a task's event history, including every policy decision.
+.TP
+.B task cancel \fITASK_ID\fR
+Request cancellation. A queued task is cancelled immediately; a running task is
+asked to stop.
+.TP
+.B task watch \fITASK_ID\fR [\-\-timeout \fISECONDS\fR]
+Follow a task until it settles or asks for an approval.
+.SS approval
+.TP
+.B approval list [\-\-state \fISTATE\fR]
+List approvals.
+.TP
+.B approval show \fIAPPROVAL_ID\fR
+Show one approval with its bound parameters, parameter digest, and the plain
+statement of its effect.
+.TP
+.B approval request \fITASK_ID\fR \fIOPERATION\fR \-\-target \fITARGET\fR [\-\-reason \fITEXT\fR] [\-\-ttl \fISECONDS\fR]
+Create an approval request. The policy engine refuses an operation it would
+never permit, so no approval prompt exists for an impossible action.
+.TP
+.B approval grant \fIAPPROVAL_ID\fR [\-\-note \fITEXT\fR]
+Authorize the operation. Prints the single-use nonce bound to the target and
+parameter set.
+.TP
+.B approval deny \fIAPPROVAL_ID\fR [\-\-note \fITEXT\fR]
+Refuse the operation.
+.TP
+.B approval revoke \fIAPPROVAL_ID\fR
+Revoke a granted approval that has not been used.
+.SS policy
+.TP
+.B policy inventory
+List every declared tool with its privilege level, whether it needs an approval,
+and the rule that governs it.
+.TP
+.B policy evaluate \fITOOL\fR [\-\-params \fIJSON\fR] [\-\-task-id \fIID\fR]
+Evaluate a proposed tool call without running it. Exits non-zero when the
+decision is not \fIallow\fR.
+.SS audit
+.TP
+.B audit query [\-\-task-id \fIID\fR] [\-\-kind \fIKIND\fR] [\-\-operation \fINAME\fR] [\-\-since \fITIMESTAMP\fR] [\-\-limit \fIN\fR]
+Query the audit trail, newest first.
+.TP
+.B audit summary
+Show audit counts by kind and outcome.
+.SS system
+.TP
+.B system snapshot
+CPU, memory, swap, filesystem capacity, and the highest-CPU processes.
+.TP
+.B system processes [\-\-limit \fIN\fR] [\-\-sort cpu|memory|pid] [\-\-min-cpu \fIPERCENT\fR]
+List processes from /proc.
+.TP
+.B system disks
+Filesystem capacity and inode use.
+.TP
+.B system services [\-\-state failed|running|all]
+List systemd units.
+.TP
+.B system service \fIUNIT\fR
+Show one unit's state.
+.TP
+.B system logs [\-\-unit \fIUNIT\fR] [\-\-lines \fIN\fR] [\-\-priority \fI0..7\fR] [\-\-since \fIEXPR\fR]
+Read bounded journal entries.
+.TP
+.B system read \fITOOL\fR [\-\-params \fIJSON\fR]
+Run a read-only System Bridge tool by name.
+.SS events
+.TP
+.B events recent [\-\-limit \fIN\fR]
+Print recent events.
+.TP
+.B events follow [\-\-timeout \fISECONDS\fR]
+Follow the event stream. A timeout of 0 means never stop.
+.SS config
+.TP
+.B config show
+Print the effective configuration as JSON, with no credential material.
+.TP
+.B config render
+Print the package default configuration document.
+.TP
+.B config path
+Print the files that contribute to the effective configuration, in application
+order.
+.SS runtime
+.TP
+.B runtime list
+List the shipped runtimes.
+.TP
+.B runtime probe [\fIRUNTIME_ID\fR]
+Report one runtime's availability and its capability set.
+.SS demo
+Run the keyless end-to-end flow against the live service: task creation, a
+runtime turn, a policy decision, an approval request, a refusal, and the audit
+trail. Requires no model credential and no network.
+.SH FILES
+.TP
+.I /etc/agentos/agentos.toml
+Package-managed configuration; replaced on upgrade.
+.TP
+.I /etc/agentos/agentos.local.toml
+Administrator overrides; never replaced by a package.
+.TP
+.I /etc/agentos/policies/
+Policy documents, applied in lexical order.
+.TP
+.I /etc/agentos/credentials.env
+Model credentials. Mode \fB0600\fR, root-owned. A package never installs this
+file and never prints its contents.
+.TP
+.I /var/lib/agentos/agentos.sqlite3
+Tasks, approvals, task history, and the audit trail.
+.SH ENVIRONMENT
+.TP
+.B AGENTOS_SOCKET
+Overrides the default core socket path.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+The command failed.
+.TP
+.B 2
+The command line was invalid.
+.TP
+.B 3
+The operation was denied by policy, or the caller lacks access.
+.TP
+.B 4
+The core service or the runtime is unavailable.
+.SH SEE ALSO
+.BR systemctl (1),
+.BR journalctl (1),
+.BR gnome-extensions (1)
+.PP
+Documentation: https://github.com/agentos-project/agentos

@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.agentos.Session1
+Exec=/usr/bin/agentos-session
+SystemdService=agentos-session.service

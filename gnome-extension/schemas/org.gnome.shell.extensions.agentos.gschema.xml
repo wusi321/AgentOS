@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AgentOS GNOME Shell extension settings.
+
+  Only UI state lives here. The extension never stores model API keys, the
+  audit database or any other secret; those belong to the AgentOS Core service.
+-->
+<schemalist gettext-domain="gnome-shell-extensions">
+
+  <schema id="org.gnome.shell.extensions.agentos"
+          path="/org/gnome/shell/extensions/agentos/">
+
+    <key name="poll-interval-seconds" type="u">
+      <default>5</default>
+      <range min="2" max="60"/>
+      <summary>Status poll interval</summary>
+      <description>
+        How often, in seconds, the extension asks the AgentOS session broker for
+        a status snapshot. Lower values feel more responsive; higher values cost
+        fewer wake-ups. Allowed range is 2 to 60 seconds.
+      </description>
+    </key>
+
+    <key name="show-task-count-in-panel" type="b">
+      <default>true</default>
+      <summary>Show the active task count in the top bar</summary>
+      <description>
+        When enabled, the top-bar indicator shows the number of queued, running
+        and approval-waiting tasks next to the icon. When disabled the indicator
+        stays icon-only.
+      </description>
+    </key>
+
+    <key name="notify-on-task-failure" type="b">
+      <default>true</default>
+      <summary>Notify when a task fails</summary>
+      <description>
+        When enabled, the extension raises one desktop notification per failed
+        task signature. Notifications are always rate limited to one per 30
+        seconds and never repeat the same signature within 5 minutes.
+      </description>
+    </key>
+
+    <key name="notify-on-approval" type="b">
+      <default>true</default>
+      <summary>Notify when a task is waiting for approval</summary>
+      <description>
+        When enabled, the extension raises one desktop notification per pending
+        approval signature. The extension only announces approvals; the AgentOS
+        desktop application is the only place where an approval can be decided.
+      </description>
+    </key>
+
+    <key name="max-recent-events" type="u">
+      <default>5</default>
+      <range min="1" max="10"/>
+      <summary>Recent events shown in the menu</summary>
+      <description>
+        Maximum number of recent activity entries listed in the menu. The
+        broker never sends more than 10 events, so the allowed range is 1 to 10.
+      </description>
+    </key>
+
+  </schema>
+
+</schemalist>

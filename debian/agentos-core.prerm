@@ -1,0 +1,33 @@
+#!/bin/sh
+# agentos-core pre-removal script.
+#
+# Removing the package stops the service. It does not delete task, approval, or
+# audit data: an uninstall must never destroy the record of what an agent did.
+# Purging the package removes configuration but still keeps /var/lib/agentos,
+# which is the directory the administrator must delete deliberately.
+set -e
+
+case "$1" in
+  remove|deconfigure)
+    if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+      # Stop the service; ignore a service that was already stopped, because a
+      # prerm that fails here would leave the package half-removed.
+      systemctl stop agentos-core.service >/dev/null 2>&1 || true
+    fi
+    ;;
+
+  upgrade|failed-upgrade|abort-install)
+    # An upgrade must not stop a service that is being replaced in place: the
+    # new unit takes over on the postinst restart. dpkg also passes these while
+    # aborting an interrupted unpack, when there is nothing to stop yet.
+    ;;
+
+  *)
+    echo "agentos-core prerm called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

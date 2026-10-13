@@ -1,0 +1,90 @@
+Source: agentos
+Section: admin
+Priority: optional
+Maintainer: AgentOS Maintainers <maintainers@agentos.invalid>
+Build-Depends: debhelper-compat (= 13), python3:any, dh-python
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/agentos-project/agentos
+Vcs-Git: https://github.com/agentos-project/agentos.git
+Vcs-Browser: https://github.com/agentos-project/agentos
+X-Python3-Version: >= 3.10
+
+Package: agentos-core
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3-psutil, adduser
+Recommends: agentos-runtime-dsh, agentos-desktop
+Suggests: agentos-gnome-extension
+Description: AgentOS core service
+ The task manager, policy engine, audit trail, and read-only System Bridge of
+ AgentOS, served over a Unix domain socket. The service runs as the unprivileged
+ agentos system user and installs no privileged executor: every operation it can
+ perform is declared in a capability manifest with an explicit privilege level,
+ and the shipped policy permits read-only inspection only.
+ .
+ The package installs no network listener. Policy decisions, approvals, and
+ execution results are recorded in an append-only audit trail.
+
+Package: agentos-runtime-dsh
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, agentos-core (>= ${source:Version})
+Recommends: nodejs (>= 22.19.0)
+Description: DeepSeek Harness runtime adapter for AgentOS
+ The AgentOS AgentRuntime adapter that drives a locked DeepSeek Harness
+ revision through its SDK JSON-RPC stdio profile. The adapter spawns the
+ harness with an allowlisted environment, maps its session events onto the
+ AgentOS runtime event vocabulary, and reports unsupported capabilities
+ honestly instead of simulating them.
+ .
+ Node.js is a Recommends rather than a Depends on purpose: no Node.js in
+ Ubuntu 22.04 or 24.04 satisfies the locked harness requirement
+ (^22.19.0 || >=24.0.0), so a hard dependency would make this package
+ uninstallable on the target release. Install a qualifying Node.js from a
+ source you trust and verify it with 'agentosctl doctor', which reports the
+ exact requirement and the version it found. The adapter refuses to start on an
+ unsupported Node.js and names the requirement, rather than silently running on
+ an unverified environment.
+ .
+ This package does not download, build, or redistribute the harness.
+
+Package: agentos-desktop
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, agentos-core (>= ${source:Version}),
+ python3-gi, python3-gi-cairo, python3-dbus, gir1.2-gtk-4.0, gir1.2-adw-1,
+ dbus-user-session | dbus-x11
+Description: AgentOS desktop application
+ The GTK4 and libadwaita AgentOS window: conversation, task queue, system
+ overview, the approval queue, the activity and audit view, and a read-only
+ settings view. It also provides the per-login session broker that serves
+ org.agentos.Session1 on the user session bus for the GNOME Shell extension.
+ .
+ Closing the window never stops a task: the core service owns task lifetime.
+ The application holds no model credential, never runs as root, and never
+ decides a policy question itself.
+
+Package: agentos-gnome-extension
+Architecture: all
+Depends: ${misc:Depends}, gnome-shell (>= 42), agentos-desktop (>= ${source:Version})
+Description: AgentOS GNOME Shell extension
+ The AgentOS panel entry for GNOME Shell 42 and later: runtime and task status,
+ the active task list, the approvals waiting on a human decision, and recent
+ activity, with throttled notifications for failures and approval requests.
+ .
+ The extension holds no secret and runs no command. It reads its state from the
+ AgentOS session broker over the user session bus, and a broker that is missing
+ or failing degrades to a visible message rather than disturbing the Shell.
+
+Package: agentos-meta
+Architecture: all
+Depends: ${misc:Depends},
+ agentos-core (>= ${source:Version}),
+ agentos-runtime-dsh (>= ${source:Version}),
+ agentos-desktop (>= ${source:Version}),
+ agentos-gnome-extension (>= ${source:Version})
+Description: complete AgentOS installation
+ A metapackage that installs the whole AgentOS system: the core service, the
+ DeepSeek Harness runtime adapter, the desktop application and session broker,
+ and the GNOME Shell extension.
+ .
+ Install this package for a complete system, or install the individual packages
+ to keep a deployment smaller.

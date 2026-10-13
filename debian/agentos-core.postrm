@@ -1,0 +1,67 @@
+#!/bin/sh
+# agentos-core post-removal script.
+#
+# Uninstall keeps user and service data. Purge removes configuration and the
+# service account, and still keeps the task and audit database so that an
+# accidental purge cannot destroy the record of what an agent did. The message
+# names the directory an administrator must remove deliberately.
+set -e
+
+case "$1" in
+  remove)
+    if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+      systemctl daemon-reload >/dev/null 2>&1 || true
+      systemctl disable agentos-core.service >/dev/null 2>&1 || true
+    fi
+
+    # The service account is left in place on remove: state on disk is still
+    # owned by it, and deleting the account would orphan that state.
+    if [ -d /var/lib/agentos ]; then
+      echo "agentos-core: task, approval, and audit data remain in /var/lib/agentos." >&2
+      echo "agentos-core: the AgentOS database was NOT deleted by this removal." >&2
+    fi
+    ;;
+
+  purge)
+    if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+      systemctl daemon-reload >/dev/null 2>&1 || true
+    fi
+
+    # Ownerless user data is left to the administrator, by design, so that a
+    # purge cannot silently destroy the audit trail.
+    if [ -d /var/lib/agentos ]; then
+      echo "agentos-core: /var/lib/agentos still contains task, approval, and audit data." >&2
+      echo "agentos-core: remove it with 'sudo rm -rf /var/lib/agentos' once you are sure." >&2
+    fi
+
+    # Purge does remove the account, after the state it owns has been reported.
+    if getent passwd agentos >/dev/null; then
+      deluser --system agentos >/dev/null 2>&1 || true
+    fi
+    if getent group agentos >/dev/null; then
+      delgroup --system agentos >/dev/null 2>&1 || true
+    fi
+
+    # Private credential storage is configuration, so purge removes it.
+    rm -rf /etc/agentos/private 2>/dev/null || true
+    ;;
+
+  disappear)
+    ;;
+
+  # dpkg calls postrm with these during an upgrade: "upgrade" after the old
+  # package's files are removed in favour of the new version, and the abort and
+  # failed-upgrade cases when that upgrade does not complete. Refusing them makes
+  # every upgrade of this package fail, so they must be accepted explicitly.
+  upgrade|failed-upgrade|abort-install|abort-upgrade)
+    ;;
+
+  *)
+    echo "agentos-core postrm called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

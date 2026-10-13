@@ -1,0 +1,50 @@
+# AgentOS Core configuration.
+#
+# This file is package-managed: an upgrade replaces it. Put local changes in
+# /etc/agentos/agentos.local.toml, or in a fragment under
+# /etc/agentos/agentos.toml.d/ .
+#
+# Never put a model credential in this file. The service reads credentials from
+# the environment, or from /etc/agentos/credentials.env (mode 0600, root-owned).
+
+[core]
+# Unix domain socket the Core service listens on.
+socket_path = "/run/agentos/core.sock"
+database_path = "/var/lib/agentos/agentos.sqlite3"
+state_directory = "/var/lib/agentos"
+cache_directory = "/var/cache/agentos"
+log_directory = "/var/log/agentos"
+log_level = "INFO"
+max_concurrent_tasks = 2
+queue_poll_seconds = 0.5
+workspace_root = "/var/lib/agentos/workspaces"
+audit_retain_days = 30
+audit_max_records = 200000
+shutdown_grace_seconds = 15.0
+
+[runtime]
+# "mock" runs without a model credential and is the safe default after install.
+# Switch to "dsh" to drive DeepSeek Harness; the agentos-runtime-dsh package
+# provides the Node.js runtime and the CLI entry point it needs.
+runtime_id = "mock"
+provider = ""
+model = ""
+reasoning_effort = ""
+max_tokens = 4096
+node_binary = "/usr/lib/agentos/node/bin/node"
+cli_entry = "/usr/lib/agentos/dsh/bin/dsh.js"
+dsh_home = "/var/lib/agentos/dsh"
+turn_timeout_seconds = 900.0
+initialize_timeout_seconds = 60.0
+
+[runtime.mock_scenario]
+# Scripted assistant replies used by the mock runtime.
+replies = [
+  "Mock runtime reply: no model credential is configured, so this response is scripted. Configure runtime.runtime_id = \"dsh\" and provide a credential to enable real analysis.",
+]
+chunk_size = 32
+
+[desktop]
+enabled = true
+notification_throttle_seconds = 30
+poll_interval_seconds = 5

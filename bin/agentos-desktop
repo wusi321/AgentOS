@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+"""``agentos-desktop``: the GTK4/libadwaita AgentOS window.
+
+Started by the user's session — from the GNOME panel entry, the application grid,
+or the session broker — never as root.
+"""
+
+import sys
+
+from agentos.desktop import main
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

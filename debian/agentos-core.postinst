@@ -1,0 +1,74 @@
+#!/bin/sh
+# agentos-core post-installation script.
+#
+# The script is idempotent: every action checks its own precondition, so it is
+# safe on install, on upgrade, and when run twice. It never contacts the network,
+# never compiles anything, never overwrites administrator configuration, and
+# assumes no GNOME session exists.
+set -e
+
+case "$1" in
+  configure)
+    # --- service account --------------------------------------------------
+    # A dedicated unprivileged account owns service state. It is a system account
+    # with no login shell and no home directory of its own; the state directory is
+    # managed by systemd.
+    if ! getent group agentos >/dev/null; then
+      addgroup --system agentos
+    fi
+    if ! getent passwd agentos >/dev/null; then
+      adduser --system --ingroup agentos --no-create-home \
+              --home /nonexistent --shell /usr/sbin/nologin \
+              --gecos "AgentOS service account" agentos
+    fi
+
+    # --- state directories ------------------------------------------------
+    # systemd creates these through StateDirectory/CacheDirectory/LogsDirectory,
+    # but they are created here too so that the service starts correctly when it
+    # is launched outside systemd, for example by an administrator debugging it.
+    install -d -m 0700 -o agentos -g agentos /var/lib/agentos
+    install -d -m 0750 -o agentos -g agentos /var/cache/agentos
+    install -d -m 0750 -o agentos -g agentos /var/log/agentos
+    # The runtime workspace root is separate from service state so that a task
+    # cannot read the database through its own working directory.
+    install -d -m 0700 -o agentos -g agentos /var/lib/agentos/workspaces
+    install -d -m 0700 -o agentos -g agentos /var/lib/agentos/dsh
+
+    # --- configuration ----------------------------------------------------
+    # Configuration templates are conffiles: dpkg preserves administrator edits
+    # and asks before replacing them. The credential file is never installed,
+    # because a package must never carry a secret.
+    install -d -m 0755 -o root -g root /etc/agentos
+    install -d -m 0755 -o root -g root /etc/agentos/policies
+    install -d -m 0700 -o root -g root /etc/agentos/private
+
+    # --- service ----------------------------------------------------------
+    if command -v systemctl >/dev/null 2>&1; then
+      if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload || true
+        # Enable but do not force-start: enabling is the package's decision,
+        # starting is the administrator's. An administrator who stopped the
+        # service on purpose must not have it started by an upgrade.
+        systemctl enable agentos-core.service >/dev/null 2>&1 || true
+      fi
+    fi
+
+    # --- upgrade notice ---------------------------------------------------
+    if [ -n "$2" ] && dpkg --compare-versions "$2" lt 0.1.0; then
+      echo "agentos-core: upgrading from $2. The shipped policy is read-only;" \
+           "review /etc/agentos/policies/ before enabling any side-effecting operation."
+    fi
+    ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+  *)
+    echo "agentos-core postinst called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

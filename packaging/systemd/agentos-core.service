@@ -1,0 +1,85 @@
+[Unit]
+Description=AgentOS core service
+Documentation=man:agentosctl(1) https://github.com/agentos-project/agentos
+After=network.target local-fs.target
+Wants=network.target
+
+[Service]
+Type=exec
+User=agentos
+Group=agentos
+ExecStart=/usr/libexec/agentos/agentos-core
+# SIGHUP reloads configuration and policy. A reload that fails validation is
+# reported in the journal and the previous configuration stays in effect, so
+# `systemctl reload` is always safe to run.
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=20s
+
+# --- environment -----------------------------------------------------------
+# The unit reads no shell profile and no user environment. A path that carries a
+# secret is never used. Model credentials belong in
+# /etc/agentos/credentials.env (root-owned, mode 0600), which the service reads
+# itself and which systemd never echoes into the journal.
+EnvironmentFile=-/etc/agentos/credentials.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# --- filesystem and state --------------------------------------------------
+StateDirectory=agentos
+StateDirectoryMode=0700
+CacheDirectory=agentos
+LogsDirectory=agentos
+RuntimeDirectory=agentos
+RuntimeDirectoryMode=0750
+# The runtime directory must be group-owned so that the socket can be shared
+# with the human users who are members of the agentos group.
+RuntimeDirectoryPreserve=restart
+
+# --- sandboxing ------------------------------------------------------------
+# Every directive below is required by the design outline's "sandbox options
+# must be tested, not copied" rule, and each is justified where it is set.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+# ProtectProc=invisible hides other users' /proc/<pid> entries from a process, so
+# the bridge sees only this account's processes.
+ProtectProc=invisible
+# ProcSubset=pid is deliberately NOT set. It removes /proc/stat, /proc/meminfo,
+# /proc/loadavg, /proc/uptime, and /proc/mounts, which are exactly the files the
+# P0 read-only bridge exists to read; setting it makes every metrics tool fail
+# with "not available on this system". The other protections already restrict
+# writes and kernel interfaces, and the bridge never opens those.
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+
+# The read-only System Bridge reads /proc and calls systemctl show or
+# journalctl. ProtectSystem=strict makes everything read-only except the
+# directories declared above, so only AgentOS state is writable.
+ReadOnlyPaths=/etc/agentos /usr/lib/agentos /usr/libexec/agentos
+
+# --- resource limits -------------------------------------------------------
+# A runaway runtime must degrade the task, not the machine.
+MemoryMax=2G
+TasksMax=256
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

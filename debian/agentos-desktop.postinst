@@ -1,0 +1,39 @@
+#!/bin/sh
+# agentos-desktop post-installation script.
+#
+# The desktop package has no system service. This script enables the per-login
+# session broker for all users and reports how to enable the GNOME Shell
+# extension, because a package postinst cannot enable a shell extension in a user
+# session that is not running.
+set -e
+
+case "$1" in
+  configure)
+    # The GSettings schemas installed by this package are compiled by the
+    # dh_installgsettings step, whose code debhelper inserts below.
+    if command -v systemctl >/dev/null 2>&1; then
+      # --global writes /etc/systemd/user/ symlinks, which is the correct scope:
+      # the broker must start in every graphical user session.
+      systemctl --global enable agentos-session.service >/dev/null 2>&1 || true
+    fi
+
+    if [ -z "$2" ]; then
+      echo "agentos-desktop: to show the AgentOS panel, enable the shell extension" >&2
+      echo "agentos-desktop: as your own user (not with sudo):" >&2
+      echo "agentos-desktop:   gnome-extensions enable agentos@agentos.dev" >&2
+      echo "agentos-desktop: then log out and back in, or press Alt+F2 and run 'r'." >&2
+    fi
+    ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+  *)
+    echo "agentos-desktop postinst called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=AgentOS
+GenericName=Agent-Native Operating Environment
+Comment=Inspect this system and run policy-controlled agent tasks
+Exec=agentos-desktop
+Icon=org.agentos.Desktop
+Terminal=false
+Categories=System;Monitor;Utility;
+Keywords=agent;ai;system;monitor;tasks;approval;
+StartupNotify=true
+StartupWMClass=org.agentos.Desktop
+# An agent task must be started deliberately, so there is no autostart file and
+# no X-GNOME-Autostart entry in this package.

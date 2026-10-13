@@ -1,0 +1,14 @@
+#!/usr/bin/python3
+"""``agentosctl`` entry point installed by the agentos-core package.
+
+The script uses the distribution Python interpreter and the system-installed
+``agentos`` package only; it inserts no path of its own, so an installed copy
+cannot be redirected by an environment variable.
+"""
+
+import sys
+
+from agentos.cli import main
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

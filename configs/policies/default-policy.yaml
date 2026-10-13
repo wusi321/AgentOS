@@ -1,0 +1,112 @@
+# AgentOS default policy.
+#
+# This is the policy an installation ships with, and it is deliberately
+# read-only. AgentOS denies anything a policy does not explicitly permit, so
+# nothing in this file grants a side effect on the system.
+#
+# To enable controlled operations, copy this file to
+#   /etc/agentos/policies/50-site-policy.yaml
+# and raise max_level there, following 50-site-policy.yaml.example. Raising a
+# level here would be overwritten by a package upgrade.
+#
+# Reference: docs/permissions.md and docs/adr/ADR-007-privileged-executor.md
+
+name: default-read-only
+
+# Highest privilege level any rule in this policy may cover. P0 read-only is the
+# shipped posture: system inspection only.
+max_level: P1
+
+# Units that system.service.restart may target. Empty means the operation is
+# refused even if an approval is granted, because there is no permitted target.
+allowlisted_service_units: []
+
+# Approval lifetimes, in seconds. The policy engine clamps every request into
+# this window, so a client cannot ask for a month-long authorization.
+minimum_approval_ttl_seconds: 30
+maximum_approval_ttl_seconds: 900
+
+rules:
+  # --- read-only system inspection (P0) -------------------------------------
+  - name: allow-read-only-inspection
+    action: allow
+    tool: "system.read.*"
+    max_level: P0
+    description: "Read-only system facts are always available; they cannot change state."
+
+  - name: allow-list-read-tools
+    action: allow
+    tool: "system.processes.list"
+    max_level: P0
+    description: "Process inventory from /proc; never signals a process."
+
+  - name: allow-inspect-process
+    action: allow
+    tool: "system.process.inspect"
+    max_level: P0
+    description: "Read one process's /proc entry."
+
+  - name: allow-list-services
+    action: allow
+    tool: "system.services.list"
+    max_level: P0
+    description: "Read systemd unit state through systemctl show/list-units."
+
+  - name: allow-service-status
+    action: allow
+    tool: "system.service.status"
+    max_level: P0
+    description: "Read exactly one unit's state."
+
+  - name: allow-journal-read
+    action: allow
+    tool: "system.logs.read"
+    max_level: P0
+    description: "Bounded journald reads; never an arbitrary file."
+
+  # --- controlled operations (P2) ------------------------------------------
+  # These rules name the operations explicitly but keep them at P0 coverage, so
+  # the shipped policy refuses them: a P2 tool cannot run under a P1 ceiling.
+  # Raise max_level above after deciding which targets are acceptable.
+  - name: deny-restart-under-read-only-policy
+    action: deny
+    tool: "system.service.restart"
+    max_level: P2
+    description: "Restarting a unit is disabled until an administrator raises max_level and lists the units."
+
+  - name: deny-terminate-under-read-only-policy
+    action: deny
+    tool: "system.process.terminate"
+    max_level: P2
+    description: "Signalling a process is disabled until an administrator raises max_level."
+
+  # --- administrative operations (P3) --------------------------------------
+  - name: deny-administrative-operations
+    action: deny
+    tool: "system.packages.configure"
+    max_level: P3
+    description: "Package management is out of scope for AgentOS in this release."
+
+  - name: deny-network-configuration
+    action: deny
+    tool: "system.network.configure"
+    max_level: P3
+    description: "Network configuration is out of scope for AgentOS in this release."
+
+  - name: deny-shell-execution
+    action: deny
+    tool: "system.shell.execute"
+    max_level: P3
+    description: "AgentOS never exposes a shell to a model."
+
+  - name: deny-power-management
+    action: deny
+    tool: "system.power.manage"
+    max_level: P3
+    description: "Power operations are out of scope for AgentOS in this release."
+
+  - name: deny-filesystem-writes
+    action: deny
+    tool: "system.files.write"
+    max_level: P3
+    description: "Writes are confined to the task workspace by the runtime account."

@@ -1,0 +1,121 @@
+# Example site policy: enable the two controlled P2 operations.
+#
+# This file is NOT installed into /etc/agentos/policies by the packages. It is a
+# template you copy and edit yourself, because enabling a side-effecting
+# operation is a decision an administrator makes for their own machine.
+#
+# To use it:
+#   sudo install -m 0644 50-site-policy.yaml.example /etc/agentos/policies/50-site-policy.yaml
+#   sudoedit /etc/agentos/policies/50-site-policy.yaml     # set your own units
+#   sudo systemctl reload agentos-core                     # SIGHUP reloads policy
+#
+# Remember that a policy rule is not the only gate: the task itself must also be
+# created with a privilege cap that reaches P2 (agentosctl task run --level-cap P2),
+# and a human must approve each individual operation, bound to its exact target
+# and parameter set.
+
+name: site-restart-allowlist
+
+# P2 permits the controlled operations below. P3 stays out of reach.
+max_level: P2
+
+# The only units system.service.restart may ever target. List real units on your
+# machine: systemctl list-unit-files --type=service
+allowlisted_service_units:
+  - cups.service
+  - ssh.service
+
+minimum_approval_ttl_seconds: 60
+maximum_approval_ttl_seconds: 600
+
+rules:
+  # Keep read-only inspection available.
+  - name: allow-read-only-inspection
+    action: allow
+    tool: "system.read.*"
+    max_level: P0
+    description: "Read-only system facts."
+
+  - name: allow-list-read-tools
+    action: allow
+    tool: "system.processes.list"
+    max_level: P0
+    description: "Process inventory."
+
+  - name: allow-inspect-process
+    action: allow
+    tool: "system.process.inspect"
+    max_level: P0
+    description: "Single process inspection."
+
+  - name: allow-list-services
+    action: allow
+    tool: "system.services.list"
+    max_level: P0
+    description: "Unit inventory."
+
+  - name: allow-service-status
+    action: allow
+    tool: "system.service.status"
+    max_level: P0
+    description: "Single unit state."
+
+  - name: allow-journal-read
+    action: allow
+    tool: "system.logs.read"
+    max_level: P0
+    description: "Bounded journal reads."
+
+  # Require an approval for each restart, and only for the units listed above.
+  - name: require-approval-for-unit-restart
+    action: require_approval
+    tool: "system.service.restart"
+    max_level: P2
+    requires_approval: true
+    allowed_targets:
+      - cups.service
+      - ssh.service
+    description: "Restarting an allowlisted unit requires a per-operation approval."
+
+  # Require an approval for each process termination. The executor additionally
+  # refuses any process the requesting user does not own, and refuses pid 1.
+  - name: require-approval-for-process-terminate
+    action: require_approval
+    tool: "system.process.terminate"
+    max_level: P2
+    requires_approval: true
+    description: "Sending SIGTERM requires a per-operation approval bound to one pid."
+
+  # Administrative operations stay refused. AgentOS has no rule form for a
+  # wildcard in the middle of a tool name, so each one is listed explicitly;
+  # that is deliberate, because an over-broad pattern is how a policy quietly
+  # grants more than its author intended.
+  - name: deny-package-management
+    action: deny
+    tool: "system.packages.configure"
+    max_level: P3
+    description: "Package management remains unavailable in this release."
+
+  - name: deny-network-configuration
+    action: deny
+    tool: "system.network.configure"
+    max_level: P3
+    description: "Network configuration remains unavailable in this release."
+
+  - name: deny-shell-execution
+    action: deny
+    tool: "system.shell.execute"
+    max_level: P3
+    description: "AgentOS never exposes a shell to a model."
+
+  - name: deny-power-management
+    action: deny
+    tool: "system.power.manage"
+    max_level: P3
+    description: "Power operations remain unavailable in this release."
+
+  - name: deny-filesystem-writes
+    action: deny
+    tool: "system.files.write"
+    max_level: P3
+    description: "Writes stay confined to the task workspace by the runtime account."

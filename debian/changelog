@@ -1,0 +1,15 @@
+agentos (0.1.0) unstable; urgency=medium
+
+  * Initial release.
+  * agentos-core: task manager, policy engine, audit trail, and the read-only
+    System Bridge, served over a Unix domain socket as an unprivileged system
+    user. The shipped policy permits P0 read-only inspection only.
+  * agentos-runtime-dsh: AgentRuntime adapter for a locked DeepSeek Harness
+    revision over its SDK JSON-RPC stdio profile.
+  * agentos-desktop: GTK4 and libadwaita application plus the per-login session
+    broker that serves org.agentos.Session1.
+  * agentos-gnome-extension: GNOME Shell 42+ panel entry, task and approval
+    overview, and throttled notifications.
+  * agentos-meta: metapackage installing the complete system.
+
+ -- AgentOS Maintainers <maintainers@agentos.invalid>  Tue, 13 Oct 2026 00:00:00 +0000

@@ -1,0 +1,6 @@
+# agentos-runtime-dsh: only the harness adapter and its locked-version record.
+# Every destination is a directory; dh_install keeps each source's basename.
+src/agentos/runtime/dsh.py                       usr/lib/python3/dist-packages/agentos/runtime/
+src/agentos/runtime/dsh_transport.py             usr/lib/python3/dist-packages/agentos/runtime/
+packaging/dsh/dsh-locked.json                    usr/share/agentos/
+packaging/dsh/README.dsh.md                      usr/share/doc/agentos-runtime-dsh/
