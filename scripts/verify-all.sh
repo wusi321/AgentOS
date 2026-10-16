@@ -8,9 +8,11 @@
 #   3. packaging metadata        (no environment needed)
 #   4. the built packages        (needs a previous build)
 #   5. the installed system      (needs root, so it is opt-in)
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -uo pipefail
 
-ROOT="${AGENTOS_REPO:-/mnt/d/桌面/AgentOS}"
+ROOT="${AGENTOS_REPO:-$(cd "$HERE/.." && pwd)}"
 WITH_SUDO="${1:-}"
 cd "$ROOT"
 
@@ -34,6 +36,9 @@ stage() {
 }
 
 stage "python syntax" python3 -m compileall -q -f src/agentos
+stage "helper script syntax" bash scripts/check-shell-syntax.sh "$ROOT"
+stage "helper script variables" python3 scripts/check-shell-variables.py "$ROOT/scripts"
+stage "artifact integrity" bash scripts/check-artifacts.sh "$ROOT/build/debs"
 stage "python 3.10 compatibility" python3 scripts/check-python-compat.py --target 3.10 "$ROOT"
 stage "source and unit tests" python3 -m pytest -q tests
 stage "packaging metadata" python3 scripts/check-packaging.py
@@ -43,6 +48,7 @@ stage "built packages" bash scripts/verify-debs.sh "$ROOT/build/debs"
 stage "end-to-end smoke test" python3 scripts/smoke-core.py
 
 if [ "$WITH_SUDO" = "--with-sudo" ]; then
+  stage "install routes" bash scripts/test-install-routes.sh "$ROOT/build/debs"
   stage "installed system" bash scripts/verify-installed.sh "$ROOT/build/debs"
   stage "data retention across removal" bash scripts/verify-data-retention.sh "$ROOT/build/debs"
   AGENTOS_SUDO_PASSWORD="${AGENTOS_SUDO_PASSWORD:-}" \

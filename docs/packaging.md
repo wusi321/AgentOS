@@ -217,6 +217,28 @@ explicitly, and the Windows mount's file modes.
 * The DSH revision is pinned by version and commit in `constants.py`, in
   `packaging/dsh/dsh-locked.json`, and in `docs/dsh-integration.md`, and the
   packaging metadata asserts it.
+* `check-artifacts.sh` compares the built `.deb` files against `SHA256SUMS` and
+  extracts each one twice, so a corrupted or unstable artifact is caught before a
+  verification run is blamed for it.
+
+## A checklist for package surgery
+
+Every item below is a failure that happened here, and each one wasted real time
+because the symptom pointed at the wrong component. They are worth re-reading before
+changing a maintainer script or a `debian/*.install` file.
+
+| Symptom | Actual cause |
+|---|---|
+| `postinst` fails with `block,: not found` and exit 127 | `#DEBHELPER#` written inside a prose comment, so the substitution shredded the script. The token belongs on its own line, and `check-packaged-scripts.sh` parses the **packaged** copy because only that reveals it. |
+| every upgrade fails with `postrm called with unknown argument 'upgrade'` | the maintainer script did not accept dpkg's full argument set — `postrm` must accept `upgrade`, `failed-upgrade`, and `abort-upgrade`. `check-maintainer-arguments.py` enforces the table above. |
+| all metrics fail with `/proc/stat is not available on this system` | `ProcSubset=pid` in the unit. Sandboxing options must be tested against the real `/proc`, not assumed safe. |
+| `modprobe`-style duplicates in the shipped tree, e.g. `.../agentos/policy/policy/` | `dh_install` copies a *directory* source to `<destination>/<basename>/`. Sub-packages are listed as globs. |
+| `usr/share/man/man1/agentosctl.1/agentosctl.1.gz` | a destination that is not a directory path creates a directory named after the file. Every destination ends in `/`. |
+| `dh_install` treats an install list as a helper script | the development checkout is on a Windows mount that reports mode 0777. Build from a native copy, as `build-debs-native.sh` does. |
+| a fresh install succeeds and `/etc/agentos` is empty | a previous `remove` left the package in the `config-files` state, so dpkg skipped the conffiles whose recorded checksums matched. Purge every package before installing, or install with `-o Dpkg::Options::=--force-confmiss`. |
+| `apt purge a b c` reports success and removes nothing | it exits 100 and performs no action when a named package is not installed. Pass only the packages that are installed — `lib-agentos-verify.sh` does this. |
+| an access-boundary check passes when it should fail | `id` reports the calling process's group list rather than the group database, and `sg` only *adds* a group. The check uses a throwaway account that was never in the group. |
+| a verification script produces no output at all | either a code block inserted above the shebang, or a variable referenced before its assignment under `set -u`. `check-shell-variables.py` and `check-shell-syntax.sh` catch both. |
 
 ## ISO integration (P6, not in this release)
 

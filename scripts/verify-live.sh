@@ -10,11 +10,17 @@
 # Usage: AGENTOS_SUDO_PASSWORD=... verify-live.sh [artifact-directory]
 set -uo pipefail
 
-ARTIFACTS="${1:-/mnt/d/桌面/AgentOS/build/debs}"
-SUDO_PASSWORD="${AGENTOS_SUDO_PASSWORD:-}"
-TARGET_USER="${AGENTOS_USER:-$(id -un)}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib-agentos-verify.sh
+. "$HERE/lib-agentos-verify.sh"
 
+ARTIFACTS="${1:-$HERE/../build/debs}"
+TARGET_USER="${AGENTOS_USER:-$(id -un)}"
 FAILURES=0
+
+# Fail immediately with an explanation rather than hanging on a sudo prompt.
+agentos_require_sudo || exit 3
+
 check() {
   local label="$1"; shift
   if "$@" >/dev/null 2>&1; then
@@ -25,14 +31,6 @@ check() {
   fi
 }
 
-sudo_do() {
-  if [ -n "$SUDO_PASSWORD" ]; then
-    printf '%s\n' "$SUDO_PASSWORD" | sudo -S -p '' "$@"
-  else
-    sudo -n "$@"
-  fi
-}
-
 echo "=== the installed system ==="
 dpkg-query -W -f '  ${Package} ${Version}\n' agentos-core agentos-runtime-dsh agentos-desktop 2>&1
 
@@ -40,39 +38,59 @@ echo ""
 echo "=== 0. fresh install, so a stale conffile cannot be tested by mistake ==="
 # A conffile the administrator has edited is preserved across an upgrade, which is
 # correct for configuration but means an edited systemd unit from an earlier build
-# keeps running. Purging first makes this a test of the packages as built.
-sudo_do dpkg --purge --force-all agentos-meta agentos-gnome-extension agentos-desktop \
-     agentos-runtime-dsh agentos-core >/dev/null 2>&1 || true
-sudo_do rm -rf /var/lib/agentos /var/cache/agentos /var/log/agentos /etc/agentos /run/agentos
-sudo_do dpkg -i "$ARTIFACTS/agentos-core_0.1.0_all.deb" "$ARTIFACTS/agentos-runtime-dsh_0.1.0_all.deb" \
-     "$ARTIFACTS/agentos-desktop_0.1.0_all.deb" >/tmp/live-install.log 2>&1
-check "core, runtime, and desktop install cleanly" bash -c 'grep -qv "error" /tmp/live-install.log'
-sudo_do dpkg -i --force-depends "$ARTIFACTS/agentos-gnome-extension_0.1.0_all.deb" >/dev/null 2>&1 || true
-sudo_do dpkg -i --force-depends "$ARTIFACTS/agentos-meta_0.1.0_all.deb" >/dev/null 2>&1 || true
-echo "  --- the installed unit no longer narrows /proc ---"
+# keeps running. Purging first makes this a test of the packages as built. The purge
+# passes only the packages that are actually installed, because `apt-get purge a b c`
+# exits 100 and does nothing at all when any named package is absent.
+agentos_clean_slate
+if agentos_install_built_packages \
+      "$ARTIFACTS/agentos-core_0.1.0_all.deb" "$ARTIFACTS/agentos-runtime-dsh_0.1.0_all.deb" \
+      "$ARTIFACTS/agentos-desktop_0.1.0_all.deb" >/tmp/live-install.log 2>&1; then
+  check "core, runtime, and desktop install cleanly" true
+else
+  echo "  [FAIL] installation reported problems:"
+  tail -12 /tmp/live-install.log | sed 's/^/         /'
+  FAILURES=$((FAILURES + 1))
+fi
+# The GNOME extension needs gnome-shell, which a headless host does not have. Its
+# absence must not prevent the rest of the verification from running.
+if agentos_install_built_packages "$ARTIFACTS/agentos-gnome-extension_0.1.0_all.deb" \
+      >/tmp/live-ext.log 2>&1; then
+  check "the GNOME extension installs" true
+else
+  echo "  [note] the extension needs gnome-shell, which this host lacks:"
+  grep -E 'Depends|not installable' /tmp/live-ext.log | head -2 | sed 's/^/         /'
+fi
+agentos_install_built_packages "$ARTIFACTS/agentos-meta_0.1.0_all.deb" >/dev/null 2>&1 || true
+echo "  --- the installed unit does not narrow /proc ---"
 check "the service unit does not set ProcSubset" bash -c "! grep -q '^ProcSubset=' /usr/lib/systemd/system/agentos-core.service"
 check "the service declares a reload" bash -c "grep -q '^ExecReload=' /usr/lib/systemd/system/agentos-core.service"
 
 echo ""
-echo "=== 1. access is denied before the user is authorized ==="
-if agentosctl health >/tmp/pre-access.log 2>&1; then
-  echo "  [note] this user already has access (already in the agentos group)"
+echo "=== 1. access is refused before the user is authorized ==="
+# The check uses a throwaway account that has never been in the agentos group, because
+# a shell that already holds the group cannot give it up: `id` reports the caller's
+# credential set and `sg` only adds a group. The probe account is the credential set a
+# user without the membership receives.
+agentos_membership_line "$TARGET_USER"
+agentos_probe_account_line
+if agentos_run_without_agentos_group agentosctl health >/tmp/pre-access.log 2>&1; then
+  echo "  [FAIL] the service answered while the process had no agentos group"
+  sed 's/^/         /' /tmp/pre-access.log
+  FAILURES=$((FAILURES + 1))
+elif grep -q 'ipc_access_denied' /tmp/pre-access.log; then
+  echo "  [ok  ] a process without the agentos group is refused, with an actionable message"
+  sed 's/^/         /' /tmp/pre-access.log
 else
-  if grep -q 'ipc_access_denied' /tmp/pre-access.log; then
-    echo "  [ok  ] a user outside the agentos group is refused, with an actionable message"
-    sed 's/^/         /' /tmp/pre-access.log
-  else
-    echo "  [FAIL] the refusal was not the expected access denial:"
-    sed 's/^/         /' /tmp/pre-access.log
-    FAILURES=$((FAILURES + 1))
-  fi
+  echo "  [FAIL] the refusal was not the expected access denial:"
+  sed 's/^/         /' /tmp/pre-access.log
+  FAILURES=$((FAILURES + 1))
 fi
 
 echo ""
 echo "=== 2. the documented authorization step ==="
 echo "  adding $TARGET_USER to the agentos group and restarting the service"
-sudo_do adduser "$TARGET_USER" agentos >/dev/null 2>&1 || true
-sudo_do systemctl restart agentos-core
+agentos_sudo adduser "$TARGET_USER" agentos >/dev/null 2>&1 || true
+agentos_sudo systemctl restart agentos-core
 sleep 4
 
 # A new group membership only takes effect in a new login session: the kernel
@@ -137,13 +155,21 @@ fi
 
 echo ""
 echo "  --- installing the documented example site policy ---"
-EXAMPLE="$ARTIFACTS/../..//configs/policies/50-site-policy.yaml.example"
+# The example ships in the source tree and also inside the doc directory of the
+# installed core package, so a verification run works whether or not the checkout
+# is at hand.
+EXAMPLE="$HERE/../configs/policies/50-site-policy.yaml.example"
 if [ ! -f "$EXAMPLE" ]; then
-  EXAMPLE="/mnt/d/桌面/AgentOS/configs/policies/50-site-policy.yaml.example"
+  EXAMPLE="/usr/share/doc/agentos-core/examples/50-site-policy.yaml.example"
+fi
+if [ ! -f "$EXAMPLE" ] && package_installed agentos-core; then
+  # The installed package keeps the example under a documented path; find it rather
+  # than guess, so a layout change cannot silently skip this check.
+  EXAMPLE="$(find /usr/share/doc/agentos-core -name '50-site-policy.yaml.example' -print -quit 2>/dev/null)"
 fi
 if [ -f "$EXAMPLE" ]; then
-  sudo_do install -m 0644 "$EXAMPLE" /etc/agentos/policies/50-site-policy.yaml
-  sudo_do systemctl reload agentos-core
+  agentos_sudo install -m 0644 "$EXAMPLE" /etc/agentos/policies/50-site-policy.yaml
+  agentos_sudo systemctl reload agentos-core
   sleep 2
   ct policy inventory 2>&1 | grep -E "restartable units|system.process.terminate" | sed 's/^/    /'
   SITE_TASK=$(sg agentos -c 'agentosctl --json task run "Prepare a controlled operation." --level-cap P2' 2>/dev/null \
@@ -163,8 +189,8 @@ if [ -f "$EXAMPLE" ]; then
   fi
   # Leave the host as the package shipped it: the example policy is not part of a
   # package install, so the verification removes it again.
-  sudo_do rm -f /etc/agentos/policies/50-site-policy.yaml
-  sudo_do systemctl reload agentos-core
+  agentos_sudo rm -f /etc/agentos/policies/50-site-policy.yaml
+  agentos_sudo systemctl reload agentos-core
   echo "  (example policy removed; the host is back to the shipped read-only policy)"
 else
   echo "  [note] the example policy was not found next to the artifacts"
@@ -190,6 +216,11 @@ echo "=== 11. the event stream ==="
 sg agentos -c 'agentosctl events subscribe >/dev/null 2>&1 || true' || true
 sg agentos -c 'timeout 8 agentosctl events follow --timeout 4' 2>&1 | head -16 | sed 's/^/  /' || true
 check "the event stream answered" bash -c "sg agentos -c 'timeout 8 agentosctl events follow --timeout 2' 2>&1 | grep -qE 'task|policy|runtime|timed out|approval'"
+
+echo ""
+echo "=== 12. the access check left no account behind ==="
+agentos_probe_account_line
+check "the probe account was removed" bash -c "! getent passwd agentos-probe"
 
 echo ""
 if [ "$FAILURES" -eq 0 ]; then

@@ -12,11 +12,13 @@
 #
 # Level 2 needs root because dpkg needs root. It installs the packages, runs the
 # checks, and then removes them again, reporting exactly what it did.
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -uo pipefail
 shopt -s nullglob
 
-REPO="${AGENTOS_REPO:-/mnt/d/桌面/AgentOS}"
-ARTIFACTS="${1:-$REPO/build/debs}"
+REPO="${AGENTOS_REPO:-$(cd "$HERE/.." && pwd)}"
+ARTIFACTS="${1:-$HERE/../build/debs}"
 DO_INSTALL="${2:-}"
 PKGS=(agentos-core agentos-runtime-dsh agentos-desktop agentos-gnome-extension agentos-meta)
 

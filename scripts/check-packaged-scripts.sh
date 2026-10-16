@@ -8,9 +8,11 @@
 # this check runs against the .deb rather than against the source tree.
 #
 # Usage: check-packaged-scripts.sh <artifact-directory>
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -uo pipefail
 
-ARTIFACTS="${1:-/mnt/d/桌面/AgentOS/build/debs}"
+ARTIFACTS="${1:-$HERE/../build/debs}"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 

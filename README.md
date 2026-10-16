@@ -112,6 +112,7 @@ upstream protocol document.
 
 | Page | Contents |
 |---|---|
+| [docs/install.md](docs/install.md) | **the three installation routes, every dependency, and the metapackage failure explained** |
 | [docs/architecture.md](docs/architecture.md) | processes, boundaries, data flow, and the module map |
 | [docs/threat-model.md](docs/threat-model.md) | assets, adversaries, trust boundaries, and residual risk |
 | [docs/permissions.md](docs/permissions.md) | privilege levels, the shipped policy, and how to raise it |
@@ -122,28 +123,53 @@ upstream protocol document.
 | [docs/vm-verification.md](docs/vm-verification.md) | the acceptance test to run on a real Ubuntu 22.04 Desktop VM, including the GNOME Shell and Python 3.10 checks that a headless host cannot perform |
 | [docs/adr/](docs/adr/) | the architecture decision records |
 
-## Verify an installed system
+## Install
 
 ```sh
-sudo apt install ./agentos-meta_*.deb
-agentosctl doctor        # no credential and no network needed
-sudo systemctl start agentos-core
-agentosctl demo          # task -> runtime -> policy -> approval -> audit
+# Simplest: name every package on one command line, so APT sees them together.
+sudo apt install ./agentos-*.deb
+
+# Or configure a local APT repository, which also makes upgrades work normally.
+sudo bash scripts/make-local-repo.sh ~/下载
+sudo apt install agentos-meta
+
+# Or run the helper, which does the first of those and prints the next steps.
+sudo bash scripts/install-agentos.sh ~/下载
+```
+
+Installing `agentos-meta` **on its own** fails, and that is expected: it is a
+metapackage, and APT resolves dependencies only from configured sources, never from
+the files beside the one you named. [docs/install.md](docs/install.md) explains the
+routes above, every dependency each package declares, and the two steps that are not
+optional afterwards:
+
+```sh
+agentosctl doctor                              # no credential and no network needed
+sudo adduser "$USER" agentos                   # then log out and back in
+sudo systemctl start agentos-core && agentosctl demo
 ```
 
 ## Verification status
 
-Every stage below is executed by `scripts/verify-all.sh` and was run against the
-packages in `build/debs/`:
+One command rebuilds from a clean tree and runs every stage:
+
+```sh
+AGENTOS_SUDO_PASSWORD=… bash scripts/run-full-verification.sh
+```
+
+It has been run three times consecutively with the same result — 15 of 15 stages pass:
 
 | Stage | Result |
 |---|---|
+| Python syntax, helper-script syntax, and no unset variables | pass — 45 modules, 33 scripts |
+| artifact integrity against `SHA256SUMS` | pass — 5 packages, deterministic extraction |
 | Python 3.10 grammar and standard-library compatibility | pass — 45 modules |
 | unit, contract, and security tests | pass — 249 tests |
 | packaging metadata, including module coverage | pass |
 | maintainer script arguments and the packaged copies | pass |
 | built-package layout, imports, schemas, units, extension security | pass |
 | end-to-end core smoke test over the real IPC socket | pass — 30 checks |
+| the three documented installation routes | pass |
 | install, upgrade, remove, purge on a real system | pass |
 | removal and purge keep the task and audit database | pass |
 | live system through the real CLI, including the approval path | pass |
@@ -152,6 +178,10 @@ Two items are **not** covered automatically, and `docs/vm-verification.md` is ho
 cover them: the GNOME Shell 42 extension on a real desktop session, and the shipped
 package under a Python 3.10 interpreter (the automated host runs 3.12, so 3.10 is
 covered by a grammar and standard-library check rather than by execution).
+
+`docs/packaging.md` closes with a checklist of the packaging failures that were
+found and fixed here, because each one produced a symptom that pointed at the wrong
+component.
 
 ## License
 

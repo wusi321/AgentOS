@@ -4,7 +4,8 @@
 # Usage: summarize-build.sh [repo-root]
 set -uo pipefail
 
-ROOT="${1:-/mnt/d/桌面/AgentOS}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="${1:-$(cd "$HERE/.." && pwd)}"
 cd "$ROOT"
 
 echo "=== artifacts ==="

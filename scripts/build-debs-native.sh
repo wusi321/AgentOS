@@ -9,13 +9,15 @@
 # filesystem, and the resulting artifacts are copied back.
 #
 # Usage: build-debs-native.sh [extra root to exclude]
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -euo pipefail
 # nullglob makes an unmatched glob expand to nothing instead of to the literal
 # pattern, which is what the artifact collection below relies on to detect an
 # empty build result.
 shopt -s nullglob
 
-REPO_SOURCE="${AGENTOS_REPO:-/mnt/d/桌面/AgentOS}"
+REPO_SOURCE="${AGENTOS_REPO:-$(cd "$HERE/.." && pwd)}"
 WORK="${AGENTOS_BUILD_DIR:-/tmp/agentos-build}"
 OUT="${AGENTOS_OUT:-$REPO_SOURCE/build/debs}"
 
